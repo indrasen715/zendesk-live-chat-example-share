@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment Setup & Deployment Requirements
+
+For full functionality and testing, this application must be deployed to Vercel with the correct environment variables configured. 
+
+A template environment file is provided at `.copyme.env.sample` with sample values and detailed instructions in the comments for each variable. To set up your environment:
+
+1. Copy `.copyme.env.sample` to `.env`
+2. Follow the instructions in the comments to obtain and configure each required variable
+3. When deploying to Vercel, ensure all environment variables are properly configured in your project settings
+
+Without proper environment configuration, certain features of the application may not function correctly. Refer to the sample env file comments for specific setup instructions for each service integration.
