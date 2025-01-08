@@ -128,11 +128,16 @@ const sendMessageToZendesk = async (
     body: raw,
   };
 
-  const response = await fetch(
+  const url = new URL(
     `${ZENDESK_API_BASE_URL}/apps/${process.env.ZENDESK_CONVERSATION_API_APP_ID}/conversations/${conversationId}/messages`,
-    requestOptions,
   );
+
+  console.log('url', url.toString());
+
+  const response = await fetch(url.toString(), requestOptions);
+  console.log('response', response.status, response.statusText);
   const data = await response.json();
+  console.log('data', data);
   return data;
 };
 
@@ -159,7 +164,7 @@ export const passControl = async (appId: string, conversationId: string) => {
     method: 'POST',
     headers: myHeaders,
     body: JSON.stringify({
-      switchboardIntegration: '662bf528e1a1ba5158142f25',
+      switchboardIntegration: process.env.ZENDESK_CONVERSATION_API_AGENTWORKSPACE_SWITCHBOARD_INTEGRATION_ID,
     }),
   });
   const data = await response.json();
