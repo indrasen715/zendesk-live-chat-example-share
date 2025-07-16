@@ -76,6 +76,7 @@ const sendMessageToZendesk = async (conversationId: string, message: string, aut
       text: cleanedMessage
     }
   });
+  console.log('Sending message to Zendesk:', ZENDESK_API_BASE_URL);
   const url = new URL(`${ZENDESK_API_BASE_URL}/apps/${process.env.ZENDESK_CONVERSATION_API_APP_ID}/conversations/${conversationId}/messages`);
   const response = await fetch(url.toString(), { method: 'POST', headers: myHeaders, body: raw });
   const data = await response.json();
