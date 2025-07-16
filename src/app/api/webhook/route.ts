@@ -25,6 +25,26 @@ function containsEscalationPhrase(message: string): boolean {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// async function sendHumanHandoffMessageSequence(
+//   appId: string,
+//   conversationId: string,
+//   humanMessageSender: (message: string) => Promise<void>,
+// ) {
+//   await delay(2000);
+//   await postActivity(appId, conversationId, 'typing:start');
+//   await delay(3321);
+//   await postActivity(appId, conversationId, 'typing:stop');
+//   await humanMessageSender('Hi, I am Joe. Taking a look at this question, will get back to you shortly.');
+//   await delay(1567);
+//   await postActivity(appId, conversationId, 'typing:start');
+//   await delay(4099);
+//   await postActivity(appId, conversationId, 'typing:stop');
+//   await humanMessageSender(
+//     "I'm still investigating, I'll send you a message when I find out more. I created Ticket #56 to track this issue.",
+//   );
+// }
+
+
 async function sendHumanHandoffMessageSequence(
   appId: string,
   conversationId: string,
@@ -39,9 +59,12 @@ async function sendHumanHandoffMessageSequence(
   await postActivity(appId, conversationId, 'typing:start');
   await delay(4099);
   await postActivity(appId, conversationId, 'typing:stop');
-  await humanMessageSender(
-    "I'm still investigating, I'll send you a message when I find out more. I created Ticket #56 to track this issue.",
-  );
+
+  // ❌ Remove this message:
+  // await humanMessageSender("I'm still investigating, I'll send you a message when I find out more. I created Ticket #56 to track this issue.");
+
+  // ✅ Optional: send a softer message or remove entirely.
+  await humanMessageSender("Our support team will assist you shortly.");
 }
 
 async function handleEvent(body: WebhookPayload) {
