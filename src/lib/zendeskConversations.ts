@@ -91,15 +91,25 @@ export const makeHumanSender = (conversationId: string) => {
 };
 
 export const passControl = async (appId: string, conversationId: string) => {
+  console.log('Passing control to agent...', process.env.ZENDESK_CONVERSATION_API_AGENTWORKSPACE_SWITCHBOARD_INTEGRATION_ID);
+
   const response = await fetch(`${ZENDESK_API_BASE_URL}/apps/${appId}/conversations/${conversationId}/passControl`, {
     method: 'POST',
     headers: myHeaders,
     body: JSON.stringify({
-      switchboardIntegration: process.env.ZENDESK_CONVERSATION_API_AGENTWORKSPACE_SWITCHBOARD_INTEGRATION_ID
-    })
+      switchboardIntegration: process.env.ZENDESK_CONVERSATION_API_AGENTWORKSPACE_SWITCHBOARD_INTEGRATION_ID,
+    }),
   });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('Agent handoff failed:', errorData);
+    throw new Error('Agent handoff failed.');
+  }
+
   return await response.json();
 };
+
 
 export type ZendeskActivityEvent = 'conversation:read' | 'typing:start' | 'typing:stop';
 
