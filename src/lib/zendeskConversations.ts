@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import type { ProvideLinksToolSchema } from './intelligent-support/schemas';
 
 const ZENDESK_API_BASE_URL = process.env.ZENDESK_API_BASE_URL || '';
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const myHeaders = new Headers();
 myHeaders.append('Content-Type', 'application/json');
@@ -172,7 +173,6 @@ const createZendeskTicket = async (userMessage: string, conversationId: string) 
 
 
 // Fallback handler: handoff + fallback to ticket
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Fallback if no agent accepts the handover
 export const handleAgentHandoffWithFallback = async (
