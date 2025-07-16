@@ -2,7 +2,6 @@ import type { z } from 'zod';
 import type { ProvideLinksToolSchema } from './intelligent-support/schemas';
 
 const ZENDESK_API_BASE_URL = process.env.ZENDESK_API_BASE_URL || '';
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const myHeaders = new Headers();
 myHeaders.append('Content-Type', 'application/json');

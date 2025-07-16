@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
 import type { WebhookPayload } from '../../../schemas/WebhookPayload';
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 import dotenv from 'dotenv';
 import {
@@ -24,7 +25,6 @@ function containsEscalationPhrase(message: string): boolean {
   return keyPhrases.some(phrase => lowerCaseMessage.includes(phrase));
 }
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function handleEvent(body: WebhookPayload) {
   const eventId = body.events[0].id;
