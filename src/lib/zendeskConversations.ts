@@ -2,7 +2,6 @@ import type { z } from 'zod';
 import type { ProvideLinksToolSchema } from './intelligent-support/schemas';
 
 const ZENDESK_API_BASE_URL = process.env.ZENDESK_API_BASE_URL || '';
-const ZENDESK_CONVERSATION_API_KEY_ID = process.env.ZENDESK_CONVERSATION_API_KEY_ID || '';
 
 const myHeaders = new Headers();
 myHeaders.append('Content-Type', 'application/json');
