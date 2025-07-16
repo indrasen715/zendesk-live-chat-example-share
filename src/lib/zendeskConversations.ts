@@ -137,25 +137,44 @@ export const getAllMessages = async (appId: string, conversationId: string, page
 };
 
 // Create ticket fallback
-export const createZendeskTicket = async (userMessage: string, conversationId: string) => {
+// Ensure correct Zendesk Support API credentials here
+const createZendeskTicket = async (userMessage: string, conversationId: string) => {
+  const SUPPORT_API_URL = `https://${process.env.ZENDESK_SUPPORT_SUBDOMAIN}.zendesk.com/api/v2/tickets.json`;
+
+  const SUPPORT_API_HEADERS = new Headers();
+  SUPPORT_API_HEADERS.append('Content-Type', 'application/json');
+  SUPPORT_API_HEADERS.append('Accept', 'application/json');
+  SUPPORT_API_HEADERS.append(
+    'Authorization',
+    `Basic ${Buffer.from(`${process.env.ZENDESK_SUPPORT_EMAIL}/token:${process.env.ZENDESK_SUPPORT_API_TOKEN}`).toString('base64')}`
+  );
+
   const ticketBody = {
     ticket: {
-      subject: `Support needed from Chat: ${conversationId}`,
-      comment: { body: `Customer message: ${userMessage}\nConversation ID: ${conversationId}` },
-      priority: 'normal'
+      subject: `Live Chat Support Needed (Conversation ID: ${conversationId})`,
+      comment: {
+        body: `Customer message:\n\n${userMessage}\n\nConversation ID: ${conversationId}`
+      },
+      priority: "normal"
     }
   };
-  const response = await fetch(`${ZENDESK_API_BASE_URL}/tickets.json`, {
+
+  const response = await fetch(SUPPORT_API_URL, {
     method: 'POST',
-    headers: myHeaders,
+    headers: SUPPORT_API_HEADERS,
     body: JSON.stringify(ticketBody)
   });
-  return await response.json();
+
+  const data = await response.json();
+  console.log('Zendesk Ticket Created:', data);
+  return data;
 };
+
 
 // Fallback handler: handoff + fallback to ticket
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Fallback if no agent accepts the handover
 export const handleAgentHandoffWithFallback = async (
   appId: string,
   conversationId: string,
@@ -164,23 +183,20 @@ export const handleAgentHandoffWithFallback = async (
   aiAssistantAvatarUrl: string
 ) => {
   const botSender = makeBotSender(aiAssistantName, aiAssistantAvatarUrl, conversationId);
-  const humanSender = makeHumanSender(conversationId);
 
-  await botSender('Let me connect you to a live agent. Please hold...');
-  await passControl(appId, conversationId);
+  try {
+    const passControlResponse = await passControl(appId, conversationId);
 
-  await delay(8000); // Wait for agent response (optional)
+    if (passControlResponse?.success) {
+      await botSender("Let me connect you to a live agent. Please hold...");
+    } else {
+      throw new Error('No agent accepted the chat.');
+    }
+  } catch (error) {
+    console.error('Agent handoff failed:', error);
 
-  const messages = await getAllMessages(appId, conversationId);
-
-  const agentResponded = messages.some(
-    msg => msg.author.type === 'business' && msg.author.displayName !== aiAssistantName
-  );
-
-  if (agentResponded) {
-    return; // Agent is active, no fallback needed
+    await botSender("Our support agents are currently unavailable. A support ticket has been created for you.");
+    await createZendeskTicket(userMessage, conversationId);  // This must be correct now
   }
-
-  await humanSender('Our support agents are currently unavailable. A support ticket has been created for you.');
-  await createZendeskTicket(userMessage, conversationId);
 };
+
