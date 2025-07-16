@@ -2,7 +2,7 @@ import type { z } from 'zod';
 import type { ProvideLinksToolSchema } from './intelligent-support/schemas';
 
 const ZENDESK_API_BASE_URL = process.env.ZENDESK_API_BASE_URL || '';
-
+const ZENDESK_CONVERSATION_API_KEY_ID = process.env.ZENDESK_CONVERSATION_API_KEY_ID || '';
 const myHeaders = new Headers();
 myHeaders.append('Content-Type', 'application/json');
 myHeaders.append('Accept', 'application/json');
@@ -34,46 +34,35 @@ export const serializeLinks = (links: z.infer<typeof ProvideLinksToolSchema>['li
   const introSourcesBlurb = 'Sources:';
 
   if (!links || links.length === 0) {
-    // If links is null, undefined, or empty, return just the intro blurb
     return introSourcesBlurb;
   }
 
-  // Deduplicate links
   const deduplicatedLinks = links.reduce(
     (accumulator, currentLink) => {
-      // Ensure currentLink.url and currentLink.title are valid strings
       const currentUrl = currentLink.url;
       const currentTitle = currentLink.title ?? 'Untitled';
 
-      // Skip links without a valid URL
       if (!currentUrl) {
         return accumulator;
       }
 
-      // Check for existing link with the same URL
       const existingByUrl = accumulator.find(link => link.url === currentUrl);
 
       if (existingByUrl) {
         const existingTitle = existingByUrl.title ?? 'Untitled';
-        // If same URL, keep the one with the shorter title
         if (currentTitle.length < existingTitle.length) {
-          // Replace the existing link
           const index = accumulator.indexOf(existingByUrl);
           accumulator[index] = { ...currentLink, title: currentTitle };
         }
       } else {
-        // Check for existing link with the same title
         const existingByTitle = accumulator.find(link => (link.title ?? 'Untitled') === currentTitle);
 
         if (existingByTitle) {
-          // If same title, keep the one with the shorter URL
           if (currentUrl.length < existingByTitle.url.length) {
-            // Replace the existing link
             const index = accumulator.indexOf(existingByTitle);
             accumulator[index] = { ...currentLink, title: currentTitle };
           }
         } else {
-          // No duplicates, add the current link
           accumulator.push({ ...currentLink, title: currentTitle });
         }
       }
@@ -83,12 +72,10 @@ export const serializeLinks = (links: z.infer<typeof ProvideLinksToolSchema>['li
     [] as NonNullable<typeof links>,
   );
 
-  // Format the deduplicated links
   const sources = deduplicatedLinks
     .map(link => {
       const title = link.title ?? 'Untitled';
       const url = link.url;
-
       return `%[${title}](${url})`;
     })
     .join('\n');
@@ -104,11 +91,7 @@ const sendMessageToZendesk = async (
 ) => {
   console.log('sending message to zendesk', conversationId, message);
 
-  // // Cleaning step: Remove markdown links of the form [(number)](link) or %[(number)](link)
   const cleanedMessage = message.replace(/%?\[\(\d+\)\]\([^)]+\)/g, '');
-
-  // Cleaning step: Replace markdown links of the form [(number)](link) with (number)
-  // const cleanedMessage = message.replace(/\[\((\d+)\)\]\([^)]+\)/g, '($1)');
 
   const raw = JSON.stringify({
     author: {
@@ -171,7 +154,6 @@ export const passControl = async (appId: string, conversationId: string) => {
   return data;
 };
 
-// Define the enum for event types
 export type ZendeskActivityEvent = 'conversation:read' | 'typing:start' | 'typing:stop';
 
 export const postActivity = async (appId: string, conversationId: string, event: ZendeskActivityEvent) => {
@@ -240,3 +222,59 @@ export const getAllMessages = async (
 
   return allMessages;
 };
+
+
+/** --- ADDED: Intelligent live-chat handler with fallback to agent & ticket creation --- **/
+
+// Example: Dummy bot answer logic (replace with real AI model call)
+const getBotAnswer = async (userMessage: string): Promise<string | null> => {
+  if (userMessage.toLowerCase().includes("hours")) {
+    return "Our working hours are 9 AM to 5 PM, Monday to Friday.";
+  }
+  return null;
+};
+
+// Create Zendesk support ticket (fallback option)
+const createZendeskTicket = async (userMessage: string, conversationId: string) => {
+  const ticketBody = {
+    ticket: {
+      subject: `Support needed from Chat: ${conversationId}`,
+      comment: {
+        body: `Customer message: ${userMessage}\nConversation ID: ${conversationId}`
+      },
+      priority: "normal"
+    }
+  };
+
+  const response = await fetch(`${ZENDESK_API_BASE_URL}/tickets.json`, {
+    method: 'POST',
+    headers: myHeaders,
+    body: JSON.stringify(ticketBody)
+  });
+
+  const data = await response.json();
+  console.log('Created Zendesk Ticket:', data);
+  return data;
+};
+
+// Main handler: Bot or human fallback
+export const handleChatResponse = async (
+  conversationId: string,
+  userMessage: string,
+  aiAssistantName: string,
+  aiAssistantAvatarUrl: string
+) => {
+  const botSender = makeBotSender(aiAssistantName, aiAssistantAvatarUrl, conversationId);
+  const humanSender = makeHumanSender(conversationId);
+
+  const botReply = await getBotAnswer(userMessage);  // Replace with real AI logic
+
+  if (botReply) {
+    await botSender(botReply);
+  } else {
+    await humanSender("I'm connecting you to a live agent. Please hold...");
+    await passControl(ZENDESK_CONVERSATION_API_KEY_ID, conversationId);
+    await createZendeskTicket(userMessage, conversationId);  // Optional fallback
+  }
+};
+/** --- END of Added Section --- **/
